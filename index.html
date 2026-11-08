@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex"><title>Pasang aplikasi</title>
+<style>
+:root{--navy:#0B1F3A;--bg:#F3F5F9;--line:#DDE3EC;--ink:#14213A;--mute:#5E6A84;--acc:#2D6BFF}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:grid;place-items:start center;padding:24px 16px}
+.card{background:#fff;border-radius:12px;padding:28px 24px;width:100%;max-width:460px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.hidden{display:none!important}.muted{color:var(--mute)}h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:18px 0 6px}
+.logo{width:96px;height:96px;border-radius:22%;background:#E5E9F1;display:block;margin:0 auto 14px}
+.head{text-align:center}.head p{margin:2px 0}
+.tabs{display:flex;gap:6px;margin:18px 0 12px;flex-wrap:wrap}
+.tab{flex:1;min-width:76px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 6px;font:inherit;cursor:pointer}
+.tab[aria-selected=true]{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn{display:block;width:100%;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:12px 16px;font:inherit;font-weight:600;cursor:pointer;margin:10px 0}
+.btn.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn:disabled{opacity:.6}
+ol,ul{padding-left:20px;margin:6px 0}li{margin:4px 0}
+.note{background:#EEF3FF;border-radius:8px;padding:10px 12px;font-size:14px;margin:10px 0}.warn{background:#FFF4E0}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 16px;border-radius:8px;max-width:90%}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+</style></head><body>
+<section id="msg" class="card"><h1 id="msgT">Memuat...</h1><p class="muted" id="msgP"></p></section>
+
+<section id="main" class="card hidden">
+ <div class="head"><img id="logo" class="logo" alt=""><h1 id="nm"></h1><p class="muted" id="dv"></p><p id="ds"></p></div>
+ <div class="tabs" id="tabs" role="tablist"></div>
+
+ <div id="p-Windows" class="pane hidden">
+  <button class="btn" id="dlWin">Download installer</button>
+  <button class="btn alt pwaBtn hidden">Atau pasang sebagai aplikasi (Chrome/Edge)</button>
+  <h2>Cara memasang</h2>
+  <ol><li>Buka file <b>Pasang-...bat</b> dari folder Unduhan.</li>
+  <li>Tekan tombol apa saja untuk melanjutkan. Pintasan baru muncul di Desktop.</li>
+  <li>Klik ikon tersebut untuk membuka aplikasi di browser.</li></ol>
+  <div class="note warn">Windows atau browser mungkin menampilkan peringatan karena file ini belum bertanda tangan digital. Lanjutkan hanya jika Anda menerimanya dari email undangan resmi. Anda tidak perlu menonaktifkan antivirus atau Windows Defender.</div>
+  <h2>Yang dilakukan installer</h2>
+  <ul><li>Menyimpan satu file ikon di folder <code>%LOCALAPPDATA%\LinkToIcon</code>.</li><li>Membuat satu pintasan di Desktop.</li><li>Tidak butuh hak Administrator, tidak mengubah registry, tidak mengirim data. Isinya bisa dibaca dengan Notepad.</li></ul>
+ </div>
+
+ <div id="p-Android" class="pane hidden">
+  <button class="btn pwaBtn hidden">Pasang aplikasi</button>
+  <h2>Jika tombol tidak muncul</h2>
+  <ol><li>Buka halaman ini di <b>Chrome</b>.</li><li>Ketuk menu <b>&#8942;</b> di kanan atas.</li><li>Pilih <b>Instal aplikasi</b> atau <b>Tambahkan ke layar utama</b>.</li></ol>
+  <p class="muted">Samsung Internet: menu &rarr; Tambahkan halaman ke &rarr; Layar utama.</p>
+ </div>
+
+ <div id="p-iPhone" class="pane hidden">
+  <div class="note warn hidden" id="notSafari">Pemasangan paling andal lewat <b>Safari</b>. Salin tautan ini lalu buka di Safari.</div>
+  <button class="btn alt hidden" id="cpLink">Salin tautan</button>
+  <h2>Cara memasang</h2>
+  <ol><li>Buka halaman ini di <b>Safari</b>.</li><li>Ketuk tombol <b>Bagikan</b> (kotak dengan panah ke atas).</li><li>Pilih <b>Tambah ke Layar Utama</b>, lalu ketuk <b>Tambah</b>.</li></ol>
+ </div>
+
+ <div id="p-Mac" class="pane hidden">
+  <button class="btn pwaBtn hidden">Pasang aplikasi</button>
+  <h2>Cara memasang</h2>
+  <ol><li><b>Chrome atau Edge:</b> klik ikon pasang di ujung kanan kolom alamat, atau menu &rarr; Instal.</li>
+  <li><b>Safari 17 atau lebih baru:</b> menu <b>File</b> &rarr; <b>Tambahkan ke Dock</b>.</li></ol>
+  <p class="muted">Browser lain mungkin tidak mendukung pemasangan. Gunakan alternatif di bawah.</p>
+  <button class="btn alt" id="dlWebloc">Unduh pintasan (.webloc)</button>
+ </div>
+
+ <p class="muted" style="font-size:13px;margin-top:16px">Setelah terpasang, cukup tekan ikon untuk membuka aplikasi.</p>
+</section>
+<div id="toast" class="hidden" role="status"></div>
+
+<script src="alamat-api.js"></script>
+<script src="installer.js"></script>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search), APP = q.get('app') || '', T = q.get('t') || '', GO = q.get('go') === '1';
+  var API = window.LTI_API || '', A = null, deferred = null;
+  var BASE = location.origin + location.pathname;
+  function $(i) { return document.getElementById(i); }
+  function api(a, extra) { return fetch(API + '?action=' + a + '&app=' + encodeURIComponent(APP) + '&t=' + encodeURIComponent(T) + (extra || '')).then(function (r) { return r.json(); }); }
+  function msg(t, p) { $('main').classList.add('hidden'); $('msg').classList.remove('hidden'); $('msgT').textContent = t; $('msgP').textContent = p || ''; }
+  function toast(t) { var e = $('toast'); e.textContent = t; e.classList.remove('hidden'); clearTimeout(e._h); e._h = setTimeout(function () { e.classList.add('hidden'); }, 4000); }
+  function stateMsg(s) {
+    if (s === 'APP_NONAKTIF') return msg('Aplikasi sementara tidak tersedia', 'Silakan coba lagi nanti atau hubungi admin.');
+    if (s === 'DICABUT') return msg('Akses dicabut', 'Akses Anda ke aplikasi ini sudah dicabut. Hubungi admin untuk meminta akses baru.');
+    if (s === 'ERROR') return msg('Terjadi gangguan', 'Coba lagi beberapa saat lagi.');
+    return msg('Tautan tidak valid', 'Periksa kembali tautan dari email Anda atau hubungi admin.');
+  }
+  var ua = navigator.userAgent;
+  var DEV = /Android/.test(ua) ? 'Android' : (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) ? 'iPhone' : /Windows/.test(ua) ? 'Windows' : /Macintosh/.test(ua) ? 'Mac' : 'Lainnya';
+  var BR = /Edg\//.test(ua) ? 'Edge' : /SamsungBrowser/.test(ua) ? 'Samsung Internet' : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /FxiOS|Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Lainnya';
+  function track(ev) { try { fetch(API + '?action=track&app=' + encodeURIComponent(APP) + '&t=' + encodeURIComponent(T) + '&ev=' + ev + '&dev=' + DEV + '&br=' + encodeURIComponent(BR), { keepalive: true }).catch(function () {}); } catch (e) {} }
+  function openLink() { return BASE + '?app=' + encodeURIComponent(APP) + '&t=' + encodeURIComponent(T) + '&go=1'; }
+
+  async function openApp() {
+    msg('Membuka aplikasi...', '');
+    var r; try { r = await api('go'); } catch (e) { return stateMsg('ERROR'); }
+    if (r.state === 'OK' && /^https:\/\//.test(r.url)) { location.replace(r.url); return; }
+    stateMsg(r.state);
+  }
+
+  function setupPwa(a) {
+    var m = /^https:\/\/drive\.google\.com\/thumbnail\?id=([\w-]{10,})/.exec(a.logo || ''), id = m && m[1];
+    function ic(n) { return 'https://drive.google.com/thumbnail?id=' + id + '&sz=w' + n; }
+    if (id) { $('logo').src = ic(256); var t = document.createElement('link'); t.rel = 'apple-touch-icon'; t.href = ic(180); document.head.append(t); }
+    var meta = document.createElement('meta'); meta.name = 'theme-color'; meta.content = a.bg; document.head.append(meta);
+    var am = document.createElement('meta'); am.name = 'apple-mobile-web-app-title'; am.content = a.nama.slice(0, 14); document.head.append(am);
+    if (!id) return;
+    var man = { id: location.pathname + '?app=' + a.id, name: a.nama, short_name: a.nama.slice(0, 12), description: a.desk || a.nama, lang: 'id',
+      start_url: openLink(), scope: location.origin + location.pathname.replace(/[^\/]*$/, ''), display: 'standalone', theme_color: a.bg, background_color: a.bg,
+      icons: [{ src: ic(192), sizes: '192x192', type: 'image/png', purpose: 'any' }, { src: ic(512), sizes: '512x512', type: 'image/png', purpose: 'any' }] };
+    var l = document.createElement('link'); l.rel = 'manifest'; l.href = URL.createObjectURL(new Blob([JSON.stringify(man)], { type: 'application/manifest+json' })); document.head.append(l);
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(function () {});
+  }
+
+  function showTab(d) {
+    document.querySelectorAll('.pane').forEach(function (p) { p.classList.toggle('hidden', p.id !== 'p-' + d); });
+    document.querySelectorAll('.tab').forEach(function (t) { t.setAttribute('aria-selected', t.dataset.d === d); });
+  }
+
+  addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; document.querySelectorAll('.pwaBtn').forEach(function (b) { b.classList.remove('hidden'); }); });
+  addEventListener('appinstalled', function () { track('PWA_TERPASANG'); toast('Aplikasi terpasang. Cari ikonnya di layar utama atau daftar aplikasi.'); });
+  document.querySelectorAll('.pwaBtn').forEach(function (b) { b.onclick = async function () { if (!deferred) return; deferred.prompt(); try { await deferred.userChoice; } catch (e) {} deferred = null; document.querySelectorAll('.pwaBtn').forEach(function (x) { x.classList.add('hidden'); }); }; });
+
+  $('dlWin').onclick = async function () {
+    var b = $('dlWin'); b.disabled = true; b.textContent = 'Menyiapkan installer...';
+    try {
+      var r = await api('icon'); if (r.state !== 'OK') return stateMsg(r.state);
+      var ico = await LTI.makeIco(r.b64, r.style);
+      var bat = LTI.buildBat({ name: A.nama, id: A.id, url: openLink(), icoB64: LTI.toB64(ico) });
+      LTI.download(bat, 'Pasang-' + LTI.safeName(A.nama) + '.bat', 'application/octet-stream');
+      track('INSTALLER_DIUNDUH'); toast('Installer diunduh. Buka file tersebut untuk memasang ikon.');
+    } catch (e) { toast('Gagal menyiapkan installer. Coba lagi.'); }
+    b.disabled = false; b.textContent = 'Download installer';
+  };
+  $('dlWebloc').onclick = function () { LTI.download(LTI.buildWebloc(openLink()), LTI.safeName(A.nama) + '.webloc', 'application/octet-stream'); };
+  $('cpLink').onclick = function () { var ta = document.createElement('textarea'); ta.value = location.href; document.body.append(ta); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); toast(ok ? 'Tautan disalin.' : 'Gagal menyalin tautan.'); };
+
+  (async function start() {
+    if (!API || API.indexOf('GANTI_DENGAN') >= 0) return msg('Belum dikonfigurasi', 'Admin perlu mengisi alamat-api.js dengan URL deployment Apps Script.');
+    if (!/^[A-Z0-9]{1,10}-[A-F0-9]{4}$/.test(APP) || !/^[a-f0-9]{48}$/.test(T)) return stateMsg('TIDAK_VALID');
+    var standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    if (GO || standalone) return openApp();
+    var info; try { info = await api('info'); } catch (e) { return stateMsg('ERROR'); }
+    if (info.state !== 'OK') return stateMsg(info.state);
+    A = info.app; document.title = 'Pasang ' + A.nama;
+    $('nm').textContent = A.nama; $('dv').textContent = A.dev ? 'Oleh ' + A.dev : ''; $('ds').textContent = A.desk;
+    setupPwa(A);
+    var tabs = $('tabs'); ['Windows', 'Android', 'iPhone', 'Mac'].forEach(function (d) {
+      var b = document.createElement('button'); b.className = 'tab'; b.dataset.d = d; b.textContent = d; b.setAttribute('role', 'tab'); b.onclick = function () { showTab(d); }; tabs.append(b);
+    });
+    if (DEV === 'iPhone' && BR !== 'Safari') { $('notSafari').classList.remove('hidden'); $('cpLink').classList.remove('hidden'); }
+    showTab(DEV === 'Lainnya' ? 'Windows' : DEV);
+    $('msg').classList.add('hidden'); $('main').classList.remove('hidden');
+    track('HALAMAN_DIBUKA');
+  })();
+})();
+</script></body></html>
