@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="id"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex"><title>Pasang aplikasi</title>
+<link rel="preconnect" href="https://script.google.com"><link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<meta name="robots" content="noindex"><meta name="referrer" content="no-referrer"><title>Pasang aplikasi</title>
 <style>
 :root{--navy:#0B1F3A;--bg:#F3F5F9;--line:#DDE3EC;--ink:#14213A;--mute:#5E6A84;--acc:#2D6BFF}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:grid;place-items:start center;padding:24px 16px}
@@ -18,6 +19,7 @@ ol,ul{padding-left:20px;margin:6px 0}li{margin:4px 0}
 .note{background:#EEF3FF;border-radius:8px;padding:10px 12px;font-size:14px;margin:10px 0}.warn{background:#FFF4E0}
 #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 16px;border-radius:8px;max-width:90%}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+details{border-bottom:1px solid var(--line);padding:8px 0}summary{cursor:pointer;font-weight:600}details p{margin:6px 0 2px;color:var(--mute);font-size:14px}
 </style></head><body>
 <section id="msg" class="card"><h1 id="msgT">Memuat...</h1><p class="muted" id="msgP"></p></section>
 
@@ -61,17 +63,24 @@ ol,ul{padding-left:20px;margin:6px 0}li{margin:4px 0}
  </div>
 
  <p class="muted" style="font-size:13px;margin-top:16px">Setelah terpasang, cukup tekan ikon untuk membuka aplikasi.</p>
+ <h2>Pertanyaan umum</h2>
+ <details><summary>Apakah aman? Apa yang dilakukan installer Windows?</summary><p>Installer hanya menyimpan satu file ikon di folder LinkToIcon (di profil Anda) dan membuat satu pintasan di Desktop. Tidak butuh hak Administrator, tidak mengubah registry atau pengaturan Windows. Seluruh isinya bisa dibaca dengan Notepad.</p></details>
+ <details><summary>Windows atau browser menampilkan peringatan. Normalkah?</summary><p>Ya, karena file belum bertanda tangan digital. Lanjutkan hanya jika Anda menerimanya dari email undangan resmi. Anda tidak perlu mematikan antivirus atau Windows Defender.</p></details>
+ <details><summary>Tombol Pasang aplikasi tidak muncul di Android.</summary><p>Gunakan Chrome, lalu ketuk menu titik tiga dan pilih Instal aplikasi atau Tambahkan ke layar utama.</p></details>
+ <details><summary>Bagaimana menghapus ikon?</summary><p>Windows: hapus pintasan di Desktop (opsional: hapus folder %LOCALAPPDATA%\LinkToIcon). Android: tekan lama ikon lalu Copot atau Hapus. iPhone: tekan lama ikon lalu Hapus dari Layar Utama.</p></details>
+ <details><summary>Ikon menampilkan "tidak tersedia" atau "akses dicabut".</summary><p>Aplikasi sedang dinonaktifkan atau akses Anda dicabut oleh admin. Hubungi admin aplikasi.</p></details>
+ <details><summary>Data apa yang dicatat?</summary><p>Halaman ini mencatat jenis perangkat, browser, dan waktu untuk peristiwa membuka halaman, mengunduh installer, dan memasang aplikasi, dikaitkan dengan undangan Anda. Tidak ada data pribadi lain yang diambil.</p></details>
 </section>
 <div id="toast" class="hidden" role="status"></div>
 
 <script src="alamat-api.js"></script>
-<script src="installer.js"></script>
 <script>
 (function () {
   var q = new URLSearchParams(location.search), APP = q.get('app') || '', T = q.get('t') || '', GO = q.get('go') === '1';
   var API = window.LTI_API || '', A = null, deferred = null;
   var BASE = location.origin + location.pathname;
   function $(i) { return document.getElementById(i); }
+  function needLTI() { return window.LTI ? Promise.resolve() : new Promise(function (res, rej) { var s = document.createElement('script'); s.src = 'installer.js'; s.onload = res; s.onerror = rej; document.head.append(s); }); }
   function api(a, extra) { return fetch(API + '?action=' + a + '&app=' + encodeURIComponent(APP) + '&t=' + encodeURIComponent(T) + (extra || '')).then(function (r) { return r.json(); }); }
   function msg(t, p) { $('main').classList.add('hidden'); $('msg').classList.remove('hidden'); $('msgT').textContent = t; $('msgP').textContent = p || ''; }
   function toast(t) { var e = $('toast'); e.textContent = t; e.classList.remove('hidden'); clearTimeout(e._h); e._h = setTimeout(function () { e.classList.add('hidden'); }, 4000); }
@@ -120,7 +129,7 @@ ol,ul{padding-left:20px;margin:6px 0}li{margin:4px 0}
   $('dlWin').onclick = async function () {
     var b = $('dlWin'); b.disabled = true; b.textContent = 'Menyiapkan installer...';
     try {
-      var r = await api('icon'); if (r.state !== 'OK') return stateMsg(r.state);
+      var pr = await Promise.all([api('icon'), needLTI()]), r = pr[0]; if (r.state !== 'OK') return stateMsg(r.state);
       var ico = await LTI.makeIco(r.b64, r.style);
       var bat = LTI.buildBat({ name: A.nama, id: A.id, url: openLink(), icoB64: LTI.toB64(ico) });
       LTI.download(bat, 'Pasang-' + LTI.safeName(A.nama) + '.bat', 'application/octet-stream');
@@ -128,7 +137,7 @@ ol,ul{padding-left:20px;margin:6px 0}li{margin:4px 0}
     } catch (e) { toast('Gagal menyiapkan installer. Coba lagi.'); }
     b.disabled = false; b.textContent = 'Download installer';
   };
-  $('dlWebloc').onclick = function () { LTI.download(LTI.buildWebloc(openLink()), LTI.safeName(A.nama) + '.webloc', 'application/octet-stream'); };
+  $('dlWebloc').onclick = async function () { await needLTI(); LTI.download(LTI.buildWebloc(openLink()), LTI.safeName(A.nama) + '.webloc', 'application/octet-stream'); };
   $('cpLink').onclick = function () { var ta = document.createElement('textarea'); ta.value = location.href; document.body.append(ta); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); toast(ok ? 'Tautan disalin.' : 'Gagal menyalin tautan.'); };
 
   (async function start() {
@@ -148,6 +157,7 @@ ol,ul{padding-left:20px;margin:6px 0}li{margin:4px 0}
     showTab(DEV === 'Lainnya' ? 'Windows' : DEV);
     $('msg').classList.add('hidden'); $('main').classList.remove('hidden');
     track('HALAMAN_DIBUKA');
+    if (DEV === 'Windows' || DEV === 'Mac') needLTI().catch(function () {});
   })();
 })();
 </script></body></html>
